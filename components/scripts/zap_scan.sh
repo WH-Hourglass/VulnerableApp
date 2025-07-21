@@ -12,7 +12,7 @@ REPORT_JSON="$HOME/zap_${webapp_CONTAINER}.json"
 HOST="http://127.0.0.1:${WEBAPP_HOST_PORT}"
 TARGET_URL="${HOST}${START_PATH}"
 echo "[*] ZAP 스캔 대상: $TARGET_URL"
-$PATH_FILE="${WORKSPACE}/components/scripts/path.txt"
+PATH_FILE="${WORKSPACE}/components/scripts/path.txt"
 
 # 경로 파일 존재 확인
 if [ ! -f "$PATH_FILE" ]; then
