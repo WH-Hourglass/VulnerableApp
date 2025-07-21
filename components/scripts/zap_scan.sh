@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # 실행 시간 측정 시작
+START_TIME=$(date +%s)
+
 # ⛳ 인자 처리
 webapp_CONTAINER="${1:-containername}" # webgoat, vulnapp
 ZAP_PORT="${2:-8090}"
@@ -12,7 +14,7 @@ REPORT_JSON="$HOME/zap_${webapp_CONTAINER}.json"
 HOST="http://127.0.0.1:${WEBAPP_HOST_PORT}"
 TARGET_URL="${HOST}${START_PATH}"
 echo "[*] ZAP 스캔 대상: $TARGET_URL"
-PATH_FILE="${WORKSPACE}/components/scripts/path.txt"
+$PATH_FILE="${WORKSPACE}/components/scripts/path.txt"
 
 # 경로 파일 존재 확인
 if [ ! -f "$PATH_FILE" ]; then
@@ -46,14 +48,14 @@ echo "✅ 총 ${URL_COUNT}개 URL 등록 완료"
 ### [3] Spider 스캔 실행 ###
 echo "[3] Spider 스캔 시작..."
 
-SPIDER_ID=$(curl -s "$http://$ZAP_HOST:$ZAP_PORT/JSON/spider/action/scan/?url=$(printf '%s' "$TARGET_URL" | jq -sRr @uri)" | jq -r '.scan')
-echo "   Spider ID: $SPIDER_ID"
-
+# Spider 스캔
+echo "[1] Spider 스캔 시작..."
+SPIDER_ID=$(curl -s "http://$ZAP_HOST:$ZAP_PORT/JSON/spider/action/scan/?url=${TARGET_URL}" | jq -r .scan)
 while true; do
-    STATUS=$(curl -s "$http://$ZAP_HOST:$ZAP_PORT/JSON/spider/view/status/?scanId=$SPIDER_ID" | jq -r '.status')
-    echo "   Spider 진행률: $STATUS%"
-    [ "$STATUS" == "100" ] && break
-    sleep 2
+  STATUS=$(curl -s "http://$ZAP_HOST:$ZAP_PORT/JSON/spider/view/status/?scanId=$SPIDER_ID" | jq -r .status)
+  echo "  - Spider 진행률: $STATUS%"
+  [ "$STATUS" == "100" ] && break
+  sleep 2
 done
 echo "✅ Spider 스캔 완료"
 
