@@ -1,8 +1,6 @@
 #!/bin/bash
 
 # 실행 시간 측정 시작
-START_TIME=$(date +%s)
-
 # ⛳ 인자 처리
 webapp_CONTAINER="${1:-containername}" # webgoat, vulnapp
 ZAP_PORT="${2:-8090}"
@@ -14,7 +12,7 @@ REPORT_JSON="$HOME/zap_${webapp_CONTAINER}.json"
 HOST="http://127.0.0.1:${WEBAPP_HOST_PORT}"
 TARGET_URL="${HOST}${START_PATH}"
 echo "[*] ZAP 스캔 대상: $TARGET_URL"
-PATH_FILE="${WORKSPACE}/components/scripts/path.txt"
+$PATH_FILE="${WORKSPACE}/components/scripts/path.txt"
 
 # 경로 파일 존재 확인
 if [ ! -f "$PATH_FILE" ]; then
@@ -38,7 +36,7 @@ while IFS= read -r path || [[ -n "$path" ]]; do
     echo "   → $url"
     
     # URL 접근 등록
-    curl -s "$ZAP_API/JSON/core/action/accessUrl/?url=$(printf '%s' "$url" | jq -sRr @uri)&followRedirects=true" > /dev/null
+    curl -s "$http://$ZAP_HOST:$ZAP_PORT/JSON/core/action/accessUrl/?url=$(printf '%s' "$url" | jq -sRr @uri)&followRedirects=true" > /dev/null
     ((URL_COUNT++))
     
 done < "$PATH_FILE"
@@ -48,11 +46,11 @@ echo "✅ 총 ${URL_COUNT}개 URL 등록 완료"
 ### [3] Spider 스캔 실행 ###
 echo "[3] Spider 스캔 시작..."
 
-SPIDER_ID=$(curl -s "$ZAP_API/JSON/spider/action/scan/?url=$(printf '%s' "$TARGET_URL" | jq -sRr @uri)" | jq -r '.scan')
+SPIDER_ID=$(curl -s "$http://$ZAP_HOST:$ZAP_PORT/JSON/spider/action/scan/?url=$(printf '%s' "$TARGET_URL" | jq -sRr @uri)" | jq -r '.scan')
 echo "   Spider ID: $SPIDER_ID"
 
 while true; do
-    STATUS=$(curl -s "$ZAP_API/JSON/spider/view/status/?scanId=$SPIDER_ID" | jq -r '.status')
+    STATUS=$(curl -s "$http://$ZAP_HOST:$ZAP_PORT/JSON/spider/view/status/?scanId=$SPIDER_ID" | jq -r '.status')
     echo "   Spider 진행률: $STATUS%"
     [ "$STATUS" == "100" ] && break
     sleep 2
@@ -62,7 +60,7 @@ echo "✅ Spider 스캔 완료"
 ### [4] Passive 스캔 대기 ###
 echo "[4] Passive 스캔 대기 중..."
 while true; do
-    RECORDS=$(curl -s "$ZAP_API/JSON/pscan/view/recordsToScan/" | jq -r '.recordsToScan')
+    RECORDS=$(curl -s "$http://$ZAP_HOST:$ZAP_PORT/JSON/pscan/view/recordsToScan/" | jq -r '.recordsToScan')
     echo "   남은 레코드: $RECORDS"
     [ "$RECORDS" -eq 0 ] && break
     sleep 2
@@ -85,10 +83,10 @@ while IFS= read -r path || [[ -n "$path" ]]; do
     
     echo "   [$SCAN_COUNT] $url 스캔 중..."
     
-    ASCAN_ID=$(curl -s "$ZAP_API/JSON/ascan/action/scan/?url=$(printf '%s' "$url" | jq -sRr @uri)" | jq -r '.scan')
+    ASCAN_ID=$(curl -s "$http://$ZAP_HOST:$ZAP_PORT/JSON/ascan/action/scan/?url=$(printf '%s' "$url" | jq -sRr @uri)" | jq -r '.scan')
     
     while true; do
-        STATUS=$(curl -s "$ZAP_API/JSON/ascan/view/status/?scanId=$ASCAN_ID" | jq -r '.status')
+        STATUS=$(curl -s "$http://$ZAP_HOST:$ZAP_PORT/JSON/ascan/view/status/?scanId=$ASCAN_ID" | jq -r '.status')
         echo "      Active 진행률: $STATUS%"
         [ "$STATUS" == "100" ] && break
         sleep 3
