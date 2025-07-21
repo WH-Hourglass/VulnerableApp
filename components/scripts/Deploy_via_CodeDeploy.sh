@@ -1,5 +1,4 @@
 #!/bin/bash
-source components/dot.env
 set -e
 
 # 배포 상태 확인 함수
